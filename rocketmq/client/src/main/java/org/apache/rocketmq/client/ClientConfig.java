@@ -63,7 +63,7 @@ public class ClientConfig {
     private int mqClientApiTimeout = 3 * 1000;
 
     private LanguageCode language = LanguageCode.JAVA;
-
+    //IP地址+instance+unitName
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());

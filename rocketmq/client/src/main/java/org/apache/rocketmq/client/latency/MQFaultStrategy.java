@@ -59,6 +59,7 @@ public class MQFaultStrategy {
         if (this.sendLatencyFaultEnable) {
             try {
                 int index = tpInfo.getSendWhichQueue().incrementAndGet();
+                //遍历消息队列。按照简单的轮询选取消息队列，当消息队列可用时，选择消息队列的工作就结束，直接返回选择到的消息队列
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
                     if (pos < 0)

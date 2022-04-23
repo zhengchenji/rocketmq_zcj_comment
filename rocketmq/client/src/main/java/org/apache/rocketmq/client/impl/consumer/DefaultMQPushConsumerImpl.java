@@ -570,7 +570,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
         }
     }
-
+    //消费者启动流程
     public synchronized void start() throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:

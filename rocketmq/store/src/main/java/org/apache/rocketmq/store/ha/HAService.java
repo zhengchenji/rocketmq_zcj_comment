@@ -76,11 +76,11 @@ public class HAService {
     public void putRequest(final CommitLog.GroupCommitRequest request) {
         this.groupTransferService.putRequest(request);
     }
-
+//isSlaveOK判断Slave从服务是否是良好的，Slave从服务器良好的标志是与master的连接数大于0并且是否已经到达需要推送数据的要求了。
     public boolean isSlaveOK(final long masterPutWhere) {
         boolean result = this.connectionCount.get() > 0;
         result =
-            result
+            result//master 推送的位移减去推送给slave的位移是否小于slave 配置的最大落后位移
                 && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
                 .getMessageStoreConfig().getHaSlaveFallbehindMax());
         return result;
@@ -203,12 +203,15 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
+                    //选择器每1s处理一次连接就绪事件
                     this.selector.select(1000);
                     Set<SelectionKey> selected = this.selector.selectedKeys();
-
+                    //遍历所有的连接就绪事件
                     if (selected != null) {
                         for (SelectionKey k : selected) {
+                            //如果事件已经就绪和是连接就绪事件
                             if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                                //连接通道
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {
@@ -216,6 +219,8 @@ public class HAService {
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
+                                        //创建HA连接，并且启动，添加连接集合中
+                                        //AcceptSocketService只处理Slave的的请求连接，Master与Slave的数据传输委托给HAConnection处理
                                         HAConnection conn = new HAConnection(HAService.this, sc);
                                         conn.start();
                                         HAService.this.addConnection(conn);
@@ -251,6 +256,7 @@ public class HAService {
     /**
      * GroupTransferService Service
      */
+    //GroupTransferService就是判断主从同步已经完成的线程。
     class GroupTransferService extends ServiceThread {
 
         private final WaitNotifyObject notifyTransferObject = new WaitNotifyObject();
@@ -284,6 +290,7 @@ public class HAService {
         }
 
         private void doWaitTransfer() {
+            //如果主从同步结束读请求不为空
             if (!this.requestsRead.isEmpty()) {
                 for (CommitLog.GroupCommitRequest req : this.requestsRead) {
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
@@ -330,7 +337,7 @@ public class HAService {
             return GroupTransferService.class.getSimpleName();
         }
     }
-
+    //HAClient类的作用就是Slave上报自己的最大偏移量，以及处理从master拉取过来的数据并落盘保存起来。
     class HAClient extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
@@ -408,7 +415,7 @@ public class HAService {
             this.byteBufferRead = this.byteBufferBackup;
             this.byteBufferBackup = tmp;
         }
-
+        //处理master发送到slave的数据
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
             while (this.byteBufferRead.hasRemaining()) {
@@ -416,6 +423,7 @@ public class HAService {
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
+                        //分发读请求
                         boolean result = this.dispatchReadRequest();
                         if (!result) {
                             log.error("HAClient, dispatchReadRequest error");
@@ -457,15 +465,20 @@ public class HAService {
                         }
                     }
 
+                    //包含完整的信息
                     if (diff >= (msgHeaderSize + bodySize)) {
+                        //读取消息到缓冲区
                         byte[] bodyData = byteBufferRead.array();
                         int dataStart = this.dispatchPosition + msgHeaderSize;
 
+                        //添加到commit log 文件
                         HAService.this.defaultMessageStore.appendToCommitLog(
                                 masterPhyOffset, bodyData, dataStart, bodySize);
 
+                        //当前的已读缓冲区指针
                         this.dispatchPosition += msgHeaderSize + bodySize;
 
+                        //上报slave最大的复制偏移量
                         if (!reportSlaveMaxOffsetPlus()) {
                             return false;
                         }

@@ -67,7 +67,7 @@ public class NamesrvStartup {
 
         return null;
     }
-// 注释版本
+//
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
@@ -78,9 +78,6 @@ public class NamesrvStartup {
             System.exit(-1);
             return null;
         }
-
-
-
 
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();

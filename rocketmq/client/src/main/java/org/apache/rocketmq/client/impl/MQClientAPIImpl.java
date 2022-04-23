@@ -746,6 +746,7 @@ public class MQClientAPIImpl {
                     try {
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response, addr);
                         assert pullResult != null;
+                        //执行回调
                         pullCallback.onSuccess(pullResult);
                     } catch (Exception e) {
                         pullCallback.onException(e);

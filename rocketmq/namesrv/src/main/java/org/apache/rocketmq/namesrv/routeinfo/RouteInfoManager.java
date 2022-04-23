@@ -144,19 +144,20 @@ public class RouteInfoManager {
                 registerFirst = registerFirst || (null == oldAddr);
 
                 if (null != topicConfigWrapper
-                    && MixAll.MASTER_ID == brokerId) {
+                    && MixAll.MASTER_ID == brokerId) {//如果是master
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
-                        || registerFirst) {
+                        || registerFirst) {//如果topic配置信息发生变化或者初次注册
                         ConcurrentMap<String, TopicConfig> tcTable =
                             topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
                             for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
+                                //根据topicConfig创建queue data数据结构，并更新topic queue table
                                 this.createAndUpdateQueueData(brokerName, entry.getValue());
                             }
                         }
                     }
                 }
-
+                //更新broke live info，存活broker信息表， broke live info是执行路由删除的重要依据
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
                     new BrokerLiveInfo(
                         System.currentTimeMillis(),
@@ -383,7 +384,7 @@ public class RouteInfoManager {
             }
         }
     }
-
+    //从路由表topicQueueTable、brokerAddrTable、filterServerTable中分别填充topicRouteData中的queueData、brokerData和filterServer 三个list
     public TopicRouteData pickupTopicRouteData(final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
@@ -438,13 +439,14 @@ public class RouteInfoManager {
 
         return null;
     }
-
+    //定时扫描非活跃节点
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
+                //关闭channel
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
@@ -452,7 +454,7 @@ public class RouteInfoManager {
             }
         }
     }
-
+    //路由删除
     public void onChannelDestroy(String remoteAddr, Channel channel) {
         String brokerAddrFound = null;
         if (channel != null) {
@@ -483,7 +485,7 @@ public class RouteInfoManager {
         }
 
         if (brokerAddrFound != null && brokerAddrFound.length() > 0) {
-
+            //维护broker addr table
             try {
                 try {
                     this.lock.writeLock().lockInterruptibly();
@@ -509,7 +511,7 @@ public class RouteInfoManager {
                                 break;
                             }
                         }
-
+                        //如果删除该broker后，整个brokerData不再有其他broker则从brokerAddrTable中移除
                         if (brokerData.getBrokerAddrs().isEmpty()) {
                             removeBrokerName = true;
                             itBrokerAddrTable.remove();
@@ -517,7 +519,7 @@ public class RouteInfoManager {
                                 brokerData.getBrokerName());
                         }
                     }
-
+                    //维护cluster addr table
                     if (brokerNameFound != null && removeBrokerName) {
                         Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
@@ -539,7 +541,7 @@ public class RouteInfoManager {
                             }
                         }
                     }
-
+                    //维护topic
                     if (removeBrokerName) {
                         Iterator<Entry<String, List<QueueData>>> itTopicQueueTable =
                             this.topicQueueTable.entrySet().iterator();

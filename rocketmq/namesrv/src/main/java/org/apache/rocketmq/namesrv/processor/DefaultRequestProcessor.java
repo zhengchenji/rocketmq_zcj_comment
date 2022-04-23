@@ -90,7 +90,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 return this.deleteKVConfig(ctx, request);
             case RequestCode.QUERY_DATA_VERSION:
                 return queryBrokerTopicConfig(ctx, request);
-            case RequestCode.REGISTER_BROKER:
+            case RequestCode.REGISTER_BROKER://心跳包处理
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
                     return this.registerBrokerWithFilterServer(ctx, request);
@@ -99,7 +99,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 }
             case RequestCode.UNREGISTER_BROKER:
                 return this.unregisterBroker(ctx, request);
-            case RequestCode.GET_ROUTEINFO_BY_TOPIC:
+            case RequestCode.GET_ROUTEINFO_BY_TOPIC://路由发现：根据主题名称拉取路由信息
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
                 return this.getBrokerClusterInfo(ctx, request);
@@ -305,7 +305,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             topicConfigWrapper.getDataVersion().setCounter(new AtomicLong(0));
             topicConfigWrapper.getDataVersion().setTimestamp(0);
         }
-
+        //更新broker状态和路由表
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),

@@ -1000,7 +1000,8 @@ public class MQClientInstance {
 
         return null;
     }
-
+//brokerAddrTable保存着<Broker Name,<brokerId,address>>的关系，
+//通过Broker 的名字查找的关系，消息是发送到Master Broker服务器上的，而Master服务器的Broker Id 等于0。
     public String findBrokerAddressInPublish(final String brokerName) {
         HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {

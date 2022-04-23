@@ -77,7 +77,7 @@ public class Validators {
         Matcher matcher = pattern.matcher(origin);
         return matcher.matches();
     }
-
+    //校验消息的合法性
     public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
         throws MQClientException {
         if (null == msg) {
@@ -101,7 +101,7 @@ public class Validators {
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }
     }
-
+    //checkTopic判断topic是否为null、是否符合topic的正则、topic的长度是否大于最大的长度127，以及消息发送的topic不能是系统的topic，如果topic不合法，则抛出异常。
     public static void checkTopic(String topic) throws MQClientException {
         if (UtilAll.isBlank(topic)) {
             throw new MQClientException("The specified topic is blank", null);

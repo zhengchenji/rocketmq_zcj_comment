@@ -1130,13 +1130,14 @@ public class BrokerController {
     public Map<Class, AccessValidator> getAccessValidatorMap() {
         return accessValidatorMap;
     }
-
+    //启动从节点复制
     private void handleSlaveSynchronize(BrokerRole role) {
         if (role == BrokerRole.SLAVE) {
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);
+            //启动定时任务同步元数据
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
